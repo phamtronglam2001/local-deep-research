@@ -45,28 +45,62 @@ AI research assistant you control. Run locally for privacy, use any LLM and buil
 
 ## ⚡ Quick Start
 
+### Windows with Podman + WSL2 (Recommended for Windows)
 
+**Prerequisites:**
+- Install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
+- Install [Podman for Windows](https://github.com/containers/podman/releases)
+- Install [LM Studio](https://lmstudio.ai/) (or any local LLM)
 
-**Option 1: Docker Run (Linux)**
-```bash
-# Step 1: Pull and run Ollama
-docker run -d -p 11434:11434 --name ollama ollama/ollama
-docker exec ollama ollama pull gpt-oss:20b
+**Setup (5 minutes):**
 
-# Step 2: Pull and run SearXNG for optimal search results
-docker run -d -p 8080:8080 --name searxng searxng/searxng
+1. **Start LM Studio** on your Windows machine and ensure it's running on `localhost:1234`
 
-# Step 3: Pull and run Local Deep Research
-docker run -d -p 5000:5000 --network host \
-  --name local-deep-research \
-  --volume "deep-research:/data" \
-  -e LDR_DATA_DIR=/data \
-  localdeepresearch/local-deep-research
+2. **Create a shared network** for containers:
+```powershell
+podman network create ldr-network
 ```
 
-**Option 2: Docker Compose**
+3. **Start SearXNG** (for web search):
+```powershell
+podman run -d --name searxng --network ldr-network -p 8888:8080 docker.io/searxng/searxng:latest
+```
 
-CPU-only (all platforms):
+4. **Create `.env` file** in your project directory with:
+```bash
+LDR_WEB_HOST=0.0.0.0
+LDR_WEB_PORT=5000
+LDR_WEB_USE_HTTPS=false
+LDR_LLM_PROVIDER=lmstudio
+LDR_LLM_LMSTUDIO_URL=http://172.31.240.1:1234/v1
+LDR_LLM_MODEL=qwen3-4b-thinking-2507
+```
+> **Note:** Replace `172.31.240.1` with your WSL2 gateway IP (run `wsl ip route | Select-String "default"` to find it)
+
+5. **Start Deep Research**:
+```powershell
+podman run -d --name deep-research `
+  --network ldr-network `
+  -p 3000:5000 `
+  --env-file .env `
+  -v deep-research:/data `
+  -e LDR_DATA_DIR=/data `
+  docker.io/localdeepresearch/local-deep-research
+```
+
+6. **Access the applications**:
+   - Deep Research: `http://<WSL2-IP>:3000` (find IP: `wsl ip addr`)
+   - SearXNG: `http://<WSL2-IP>:8888`
+
+📖 **[Detailed Setup Guide →](SETUP_GUIDE.md)** | 📚 **[Networking Explained →](PODMAN_WSL2_SETUP.md)**
+
+---
+
+### Other Platforms
+
+**Option 1: Docker Compose (Linux, macOS)**
+
+CPU-only:
 ```bash
 curl -O https://raw.githubusercontent.com/LearningCircuit/local-deep-research/main/docker-compose.yml && docker compose up -d
 ```
@@ -78,17 +112,16 @@ curl -O https://raw.githubusercontent.com/LearningCircuit/local-deep-research/ma
 docker compose -f docker-compose.yml -f docker-compose.gpu.override.yml up -d
 ```
 
-Open http://localhost:5000 after ~30 seconds. For GPU setup, environment variables, and more, see the [Docker Compose Guide](docs/docker-compose-guide.md).
+[Full Docker Compose Guide →](docs/docker-compose-guide.md)
 
-**Option 3: pip install**
+**Option 2: pip install**
 ```bash
 pip install local-deep-research
 ```
 > Works on Windows, macOS, and Linux. SQLCipher encryption is included via pre-built wheels — no compilation needed.
 > PDF export on Windows requires Pango ([setup guide](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)).
-> If you encounter issues with encryption, set `export LDR_BOOTSTRAP_ALLOW_UNENCRYPTED=true` to use standard SQLite instead.
 
-[More install options →](#-installation-options)
+[All installation options →](#-installation-options)
 
 ## 🏗️ How It Works
 
