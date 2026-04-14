@@ -58,6 +58,8 @@ src/local_deep_research/web/static/css/themes.css
 !eslint.config.mjs
 !vulture_whitelist.py
 !docker-compose.yml
+!SETUP_GUIDE.md
+!PODMAN_WSL2_SETUP.md
 
 
 # Block JSON files in root directory (except package.json which is explicitly allowed above)
